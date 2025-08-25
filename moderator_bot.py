@@ -22,52 +22,6 @@ def extract_urls(text):
     # This regex is improved to find http, https, and www links
     return re.findall(r'(?:(?:https?://)|(?:www\.))\S+', text)
 
-# def check_google_safe_browsing(url):
-#     """Checks a URL against the Google Safe Browsing API."""
-#     api_url = f"https://webrisk.googleapis.com/v1/uris:search?key={GOOGLE_API_KEY}"
-#     payload = {
-#         'uri': url,
-#         'threatTypes': ['MALWARE', 'SOCIAL_ENGINEERING', 'UNWANTED_SOFTWARE']
-#     }
-#     try:
-#         response = requests.post(api_url, json=payload)
-#         # If the response contains 'threat', it's malicious
-#         if response.json().get('threat'):
-#             print(f"Malicious link found by Google: {url}")
-#             return True
-#     except Exception as e:
-#         print(f"Error checking Google Safe Browsing: {e}")
-#     return False
-
-# NEW DEBUGGING VERSION
-# FINAL CORRECTED VERSION
-# def check_google_safe_browsing(url):
-#     """Checks a URL against the Google Web Risk API using the correct GET method."""
-#     api_url = "https://webrisk.googleapis.com/v1/uris:search"
-
-#     # All parameters are sent in the URL for a GET request
-#     params = {
-#         'key': GOOGLE_API_KEY,
-#         'uri': url,
-#         'threatTypes': ['MALWARE', 'SOCIAL_ENGINEERING', 'UNWANTED_SOFTWARE']
-#     }
-
-#     try:
-#         response = requests.get(api_url, params=params)
-#         response.raise_for_status() # Raise an error for bad responses (4xx or 5xx)
-
-#         # If the response contains 'threat', it's malicious
-#         if response.json().get('threat'):
-#             print(f"Malicious link found by Google: {url}")
-#             return True
-
-#     except requests.exceptions.RequestException as e:
-#         # This will now print the full error page from Google if one occurs
-#         print(f"Error checking Google Web Risk. Status Code: {e.response.status_code}, Response: {e.response.text}")
-#     except Exception as e:
-#         print(f"A different error occurred while checking Google: {e}")
-
-#     return False
 
 def check_sightengine_adult_content(url):
     """Checks a URL for adult content using the Sightengine API."""
