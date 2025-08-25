@@ -15,35 +15,37 @@ def extract_urls(text):
     return re.findall(r'(?:(?:https?://)|(?:www\.))\S+', text)
 
 
+# FINAL DEBUGGING VERSION
 def check_sightengine_adult_content(url):
-    """Checks a URL for adult or obscene content using the Sightengine API."""
+    """Checks a URL for adult or obscene content and handles API errors."""
     api_url = f"https://api.sightengine.com/1.0/check-url.json"
-    
-    # We now check against two models: 'adult' and 'obscene'
     params = {
         'url': url,
         'models': 'adult,obscene',
         'api_user': SIGHTENGINE_API_USER,
         'api_secret': SIGHTENGINE_API_SECRET
     }
-    
+
     try:
         response = requests.get(api_url, params=params)
         data = response.json()
-        
-        # Check if the 'adult' probability is high
+
+        # First, check if the API call itself failed (e.g., bad keys)
+        if data.get('status') == 'failure':
+            print(f"ERROR: Sightengine API call failed. Reason: {data.get('error', {}).get('message')}")
+            return False
+
+        # If the call succeeded, check the scores
         is_adult = data.get('adult', {}).get('prob', 0) > 0.5
-        # Check if the 'obscene' probability is high
         is_obscene = data.get('obscene', {}).get('prob', 0) > 0.5
-        
-        # If either one is true, we flag the link
+
         if is_adult or is_obscene:
             print(f"Adult/Obscene content link found by Sightengine: {url}")
             return True
-            
+
     except Exception as e:
-        print(f"Error checking Sightengine: {e}")
-        
+        print(f"ERROR: An exception occurred while checking Sightengine: {e}")
+
     return False
 
 # --- Bot Logic ---
@@ -112,3 +114,4 @@ def main():
 if __name__ == "__main__":
 
     main()
+
