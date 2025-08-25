@@ -1,5 +1,4 @@
 import os
-import re
 import requests
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
@@ -9,31 +8,25 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 SIGHTENGINE_API_USER = os.getenv("SIGHTENGINE_API_USER")
 SIGHTENGINE_API_SECRET = os.getenv("SIGHTENGINE_API_SECRET")
 
-# Your comprehensive list of banned words
+
 ADULT_WORDS = [
-    "porn", "porno", "pornography", "xxx", "adult", "erotic", "erotica", "nude", "naked",
-    "sex", "sexual", "sexy", "hardcore", "softcore", "fetish", "bdsm", "kinky", "orgasm",
-    "intercourse", "explicit", "x-rated", "18+", "nsfw", "hentai", "strip", "stripping",
-    "webcam", "camgirl", "camboy", "onlyfans", "escort", "prostitute", "prostitution",
-    "brothel", "voyeur", "exhibitionist", "masturbation", "genitalia", "arousal",
-    "foreplay", "bondage", "dominatrix", "submissive", "adultfilm", "pornstar", "sextape",
-    "adultcontent", "nudevideo", "sexvideo", "sexcam", "smut", "raunchy", "steamy",
+    # Base words
+    "porn", "porno", "pornography", "xxx", "adult", "erotic", "sex", "sexual", "nude",
+    "p#rn",
+    "p@rn",
+    "p0rn",
+    "s3x",
+    "s.e.x",
+    "erotica", "naked", "sexy", "hardcore", "softcore", "fetish", "bdsm", "kinky", "orgasm", 
+    "intercourse", "explicit", "x-rated", "18+", "nsfw", "hentai", "strip", "stripping", 
+    "webcam", "camgirl", "camboy", "onlyfans", "escort", "prostitute", "prostitution", 
+    "brothel", "voyeur", "exhibitionist", "masturbation", "genitalia", "arousal", 
+    "foreplay", "bondage", "dominatrix", "submissive", "adultfilm", "pornstar", "sextape", 
+    "adultcontent", "nudevideo", "sexvideo", "sexcam", "smut", "raunchy", "steamy", 
     "naughty", "dirty", "freaky", "spicy", "racy", "lewd", "obscene", "vulgar"
 ]
 
-# --- Helper Functions ---
-def normalize_text(text):
-    """Prepares text for keyword checking by removing separators and replacing common character substitutions."""
-    # Convert to lowercase
-    text = text.lower()
-    # Replace common character substitutions
-    substitutions = {'0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '@': 'a', '$': 's'}
-    for char, replacement in substitutions.items():
-        text = text.replace(char, replacement)
-    # Remove common separators
-    text = re.sub(r'[\s\.\-_#\*]', '', text)
-    return text
-
+# --- Sightengine API Function ---
 def check_message_for_bad_links(message_text):
     """Sends the entire message text to Sightengine for link moderation."""
     api_url = "https://api.sightengine.com/1.0/text/check.json"
@@ -74,21 +67,21 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception:
         return
 
-    # 1. NEW: Prepare a "normalized" version of the text for a smarter check
-    normalized_text = normalize_text(message.text)
+    # Convert the user's message to lowercase once
+    message_text_lower = message.text.lower()
 
-    # 2. Check for banned words in the normalized text
+    # Check if any of the banned words are in the lowercase message
     for word in ADULT_WORDS:
-        if word in normalized_text:
+        if word in message_text_lower:
             try:
                 await message.delete()
                 print(f"Deleted a message from '{user.username}' containing a banned word: '{word}'")
-                return
+                return # Stop processing after deleting
             except Exception as e:
                 print(f"Failed to delete message for banned word: {e}")
             return
 
-    # 3. If no banned words are found, check for bad links
+    # If no banned words are found, then check for bad links
     if check_message_for_bad_links(message.text):
         try:
             await message.delete()
@@ -99,7 +92,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Sends a welcome message."""
     await update.message.reply_text(
-        "Hello! I am a moderation bot. I now delete messages with banned words or malicious links from non-admins."
+        "Hello! I am a moderation bot. I delete messages with banned words or malicious links from non-admins."
     )
 
 # --- Main Bot Runner ---
