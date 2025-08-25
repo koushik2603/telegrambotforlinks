@@ -1,50 +1,65 @@
 import os
+import re
 import requests
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
 # --- Configuration ---
-# These are loaded securely from your hosting environment (e.g., Railway)
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 SIGHTENGINE_API_USER = os.getenv("SIGHTENGINE_API_USER")
 SIGHTENGINE_API_SECRET = os.getenv("SIGHTENGINE_API_SECRET")
 
-# --- Sightengine API Function ---
+# Your comprehensive list of banned words
+ADULT_WORDS = [
+    "porn", "porno", "pornography", "xxx", "adult", "erotic", "erotica", "nude", "naked",
+    "sex", "sexual", "sexy", "hardcore", "softcore", "fetish", "bdsm", "kinky", "orgasm",
+    "intercourse", "explicit", "x-rated", "18+", "nsfw", "hentai", "strip", "stripping",
+    "webcam", "camgirl", "camboy", "onlyfans", "escort", "prostitute", "prostitution",
+    "brothel", "voyeur", "exhibitionist", "masturbation", "genitalia", "arousal",
+    "foreplay", "bondage", "dominatrix", "submissive", "adultfilm", "pornstar", "sextape",
+    "adultcontent", "nudevideo", "sexvideo", "sexcam", "smut", "raunchy", "steamy",
+    "naughty", "dirty", "freaky", "spicy", "racy", "lewd", "obscene", "vulgar"
+]
+
+# --- Helper Functions ---
+def normalize_text(text):
+    """Prepares text for keyword checking by removing separators and replacing common character substitutions."""
+    # Convert to lowercase
+    text = text.lower()
+    # Replace common character substitutions
+    substitutions = {'0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '@': 'a', '$': 's'}
+    for char, replacement in substitutions.items():
+        text = text.replace(char, replacement)
+    # Remove common separators
+    text = re.sub(r'[\s\.\-_#\*]', '', text)
+    return text
+
 def check_message_for_bad_links(message_text):
     """Sends the entire message text to Sightengine for link moderation."""
-    # This uses the correct Text Moderation API endpoint
     api_url = "https://api.sightengine.com/1.0/text/check.json"
-    
     params = {
         'text': message_text,
         'lang': 'en',
-        'mode': 'rules', # This mode is for checking links and profanity
+        'mode': 'rules',
         'api_user': SIGHTENGINE_API_USER,
         'api_secret': SIGHTENGINE_API_SECRET
     }
-    
     try:
         response = requests.post(api_url, data=params)
         data = response.json()
-
-        # Check for an API call failure (e.g., bad keys)
         if data.get('status') == 'failure':
             print(f"ERROR: Sightengine API call failed. Reason: {data.get('error', {}).get('message')}")
             return False
-
-        # Check if the 'link' section has any matches
         if data.get('link', {}).get('matches'):
             print(f"SUCCESS: Sightengine found a flagged link in the message.")
             return True
-            
     except Exception as e:
         print(f"ERROR: An exception occurred while checking Sightengine: {e}")
-        
     return False
 
 # --- Bot Logic ---
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Checks messages for bad links from non-admins and deletes them."""
+    """Checks messages for banned words or bad links from non-admins and deletes them."""
     message = update.message
     if not message or not message.text:
         return
@@ -52,44 +67,52 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = message.from_user
     chat_id = message.chat_id
     
-    # 1. Check if the user is an admin
     try:
         chat_member = await context.bot.get_chat_member(chat_id, user.id)
         if chat_member.status in ['administrator', 'creator']:
-            return # Ignore admins
+            return
     except Exception:
         return
 
-    # 2. Check the entire message for bad links using our new function
+    # 1. NEW: Prepare a "normalized" version of the text for a smarter check
+    normalized_text = normalize_text(message.text)
+
+    # 2. Check for banned words in the normalized text
+    for word in ADULT_WORDS:
+        if word in normalized_text:
+            try:
+                await message.delete()
+                print(f"Deleted a message from '{user.username}' containing a banned word: '{word}'")
+                return
+            except Exception as e:
+                print(f"Failed to delete message for banned word: {e}")
+            return
+
+    # 3. If no banned words are found, check for bad links
     if check_message_for_bad_links(message.text):
         try:
             await message.delete()
             print(f"Deleted a message from '{user.username}' containing a flagged link.")
         except Exception as e:
-            print(f"Failed to delete message: {e}")
+            print(f"Failed to delete message for flagged link: {e}")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Sends a welcome message when the /start command is issued."""
+    """Sends a welcome message."""
     await update.message.reply_text(
-        "Hello! I am a moderation bot. I will automatically remove malicious or adult links from non-admin users. "
-        "Make sure I have 'Delete Messages' permission to work correctly."
+        "Hello! I am a moderation bot. I now delete messages with banned words or malicious links from non-admins."
     )
 
 # --- Main Bot Runner ---
 def main():
     """Starts the bot."""
     if not all([BOT_TOKEN, SIGHTENGINE_API_USER, SIGHTENGINE_API_SECRET]):
-        print("ERROR: One or more environment variables are missing. Please check your hosting configuration.")
+        print("ERROR: One or more environment variables are missing.")
         return
         
     print("Bot is starting...")
     application = Application.builder().token(BOT_TOKEN).build()
-
-    # Add handlers
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-
-    # Run the bot
     application.run_polling()
 
 if __name__ == "__main__":
