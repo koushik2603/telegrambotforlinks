@@ -38,38 +38,50 @@ def check_sightengine_adult_content(url):
 # --- Bot Logic ---
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Checks messages for malicious or adult links from non-admins."""
+    """Checks messages for adult links from non-admins and deletes them."""
     message = update.message
     if not message or not message.text:
         return
 
     user = message.from_user
     chat_id = message.chat_id
+    print(f"DEBUG: Received message from user '{user.username}'.") # New print statement
 
-
+    # 1. Check if the user is an admin or creator
     try:
         chat_member = await context.bot.get_chat_member(chat_id, user.id)
         if chat_member.status in ['administrator', 'creator']:
-            return 
+            print("DEBUG: User is an admin. Ignoring.") # New print statement
+            return
     except Exception:
-        return 
+        print("DEBUG: Could not check admin status. Ignoring.") # New print statement
+        return
 
-
+    print("DEBUG: User is not an admin. Checking for URLs.") # New print statement
     urls = extract_urls(message.text)
-    if not urls:
-        return 
 
+    if not urls:
+        print("DEBUG: No URLs found in message.") # New print statement
+        return
+
+    print(f"DEBUG: Found URL(s): {urls}") # New print statement
+
+    # We only check for adult content now
     for url in urls:
-        
-        if check_sightengine_adult_content(url):
+        print(f"DEBUG: Checking URL with Sightengine: {url}") # New print statement
+        is_adult = check_sightengine_adult_content(url)
+
+        if is_adult:
+            print("DEBUG: Sightengine reported link as ADULT. Attempting to delete.") # New print statement
             try:
                 await message.delete()
-                print(f"Deleted message from '{user.username}' for containing an adult content link.")
-                
+                print(f"SUCCESS: Deleted message from '{user.username}'.")
                 return
             except Exception as e:
-                print(f"Failed to delete message: {e}")
+                print(f"ERROR: Failed to delete message: {e}")
                 return
+        else:
+            print("DEBUG: Sightengine reported link as SAFE.") # New print statement
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Sends a welcome message."""
