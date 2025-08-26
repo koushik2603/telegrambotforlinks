@@ -46,7 +46,7 @@ BANNED_WORDS = [
     "stripping", "suckmy", "swinger", "topless", "twat", "vagina", "voyeur", "vulgar", "wank", 
     "webcam", "xanax", "xrated", "xxx", "zoophile", "zoophilia",
     # New words added
-    "dengey", "dengue", "modda", "mda", "lavada", "lawada", "puku", "sulli", "puka", "eripuka", "erripuka", "erpk", "lnjdk", "lanjoduku", "kojja"
+    "dengey", "dengue", "modda", "mda", "lavada", "lawada", "puku", "sulli", "puka", "eripuka", "erripuka", "erpk", "lnjdk", "lanjoduku", "kojja", "lanja", "munda", "aathu", "kutha"
 ]
 
 # The smart pattern for common variations
@@ -144,5 +144,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
