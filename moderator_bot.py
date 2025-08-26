@@ -1,4 +1,5 @@
 import os
+import re
 import requests
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
@@ -8,23 +9,46 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 SIGHTENGINE_API_USER = os.getenv("SIGHTENGINE_API_USER")
 SIGHTENGINE_API_SECRET = os.getenv("SIGHTENGINE_API_SECRET")
 
-
-ADULT_WORDS = [
-    # Base words
-    "porn", "porno", "pornography", "xxx", "adult", "erotic", "sex", "sexual", "nude",
-    "p#rn",
-    "p@rn",
-    "p0rn",
-    "s3x",
-    "s.e.x",
-    "erotica", "naked", "sexy", "hardcore", "softcore", "fetish", "bdsm", "kinky", "orgasm", 
-    "intercourse", "explicit", "x-rated", "18+", "nsfw", "hentai", "strip", "stripping", 
-    "webcam", "camgirl", "camboy", "onlyfans", "escort", "prostitute", "prostitution", 
-    "brothel", "voyeur", "exhibitionist", "masturbation", "genitalia", "arousal", 
-    "foreplay", "bondage", "dominatrix", "submissive", "adultfilm", "pornstar", "sextape", 
-    "adultcontent", "nudevideo", "sexvideo", "sexcam", "smut", "raunchy", "steamy", 
-    "naughty", "dirty", "freaky", "spicy", "racy", "lewd", "obscene", "vulgar"
+# The comprehensive list of banned words
+BANNED_WORDS = [
+    "abbo", "abo", "abortion", "abuse", "addict", "adult", "amateur", "anal", "analsex", "angry", 
+    "anus", "areola", "arse", "arsehole", "ass", "assassin", "assault", "assbagger", "assblaster", 
+    "assclown", "asscowboy", "asses", "assfuck", "assfucker", "asshat", "asshole", "assholes", 
+    "asshore", "assjockey", "asskiss", "asskisser", "assklown", "asslick", "asslicker", "asslover", 
+    "assman", "assmonkey", "assmunch", "assmuncher", "asspacker", "asspirate", "asspuppies", 
+    "assranger", "asswhore", "asswipe", "attack", "babe", "babies", "backdoor", "backdoorman", 
+    "backseat", "badfuck", "balllicker", "balls", "ballsack", "banging", "barelylegal", "barf", 
+    "barface", "barfface", "bast", "bastard", "bazongas", "bazooms", "beaner", "beast", "beastality", 
+    "beastial", "beastiality", "beatoff", "beat-off", "beatyourmeat", "beaver", "bestial", "bestiality", 
+    "bi", "biatch", "bicurious", "bigass", "bigbastard", "bigbutt", "bigger", "bisexual", "bitch", 
+    "bitcher", "bitches", "bitchez", "bitchin", "bitching", "bitchslap", "bitchy", "biteme", "black", 
+    "blackman", "blackout", "blacks", "blow", "blowjob", "boang", "bogan", "bohunk", "bollick", "bollock", 
+    "bomb", "bombers", "bombing", "bombs", "bomd", "bondage", "boner", "bong", "boob", "boobies", "boobs", 
+    "booby", "boody", "boom", "boong", "boonga", "boonie", "booty", "bootycall", "bountybar", "bra", 
+    "brea5t", "breast", "breastjob", "breastlover", "breastman", "brothel", "bugger", "buggered", 
+    "buggery", "bullcrap", "bulldike", "bulldyke", "bullshit", "bumblefuck", "bumfuck", "bunga", 
+    "bunghole", "buried", "burn", "butchbabes", "butchdike", "butchdyke", "butt", "buttbang", "buttface", 
+    "buttfuck", "buttfucker", "buttfuckers", "butthead", "buttman", "buttmunch", "buttmuncher", 
+    "buttpirate", "buttplug", "buttstain", "byatch", "cacker", "cameljockey", "cameltoe", "canadian", 
+    "cancer", "carpetmuncher", "carruth", "catholic", "catholics", "cemetery", "chav", "cherrypopper", 
+    "chickslick", "children", "chin", "chinaman", "chinamen", "chinese", "chink", "chinky", "choad", 
+    "chode", "christ", "christian", "church", "cigarette", "cigs", "clamdigger", "clamdiver", "clit", 
+    "clitoris", "clogwog", "cocain", "cocaine", "cock", "cocksucker", "coonass", "cornhole", "cox", 
+    "cracker", "crap", "cunt", "deepthro", "dick", "dumbass", "dyke", "ectasy", "erotic", "erotica", 
+    "exhibitionist", "fag", "faggot", "feck", "fentanyl", "fistfuck", "fuck", "fucker", "fuckery", 
+    "fuckface", "fuckher", "fuckjoe", "fuckup", "gay", "gaysex", "genitalia", "gore", "heroine", 
+    "homoerotic", "hookup", "hot", "idiot", "intercourse", "jerk", "kike", "kinky", "ketamine", 
+    "lickmy", "lingerie", "lsd", "marijuana", "masturbation", "meth", "methamphetamine", "molly", 
+    "morphine", "motherfucker", "naked", "naughty", "nigga", "nigger", "nude", "obscene", "orgasm", 
+    "paki", "penis", "piss", "poof", "poofter", "porn", "porno", "pornography", "prick", "prostitute", 
+    "prostitution", "pussy", "racy", "ratfucking", "raunchy", "retard", "sexcam", "sexvideo", "sexy", 
+    "shit", "shithouse", "shitposting", "shitter", "slut", "smut", "spicy", "steroids", "strip", 
+    "stripping", "suckmy", "swinger", "topless", "twat", "vagina", "voyeur", "vulgar", "wank", 
+    "webcam", "xanax", "xrated", "xxx", "zoophile", "zoophilia"
 ]
+
+# The smart pattern for common variations
+PATTERN = re.compile(r'\b(p[o0]rn|f[uU][cC][kK]|s[eE3][xX])\b', re.IGNORECASE)
 
 # --- Sightengine API Function ---
 def check_message_for_bad_links(message_text):
@@ -52,7 +76,7 @@ def check_message_for_bad_links(message_text):
 
 # --- Bot Logic ---
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Checks messages for banned words or bad links from non-admins and deletes them."""
+    """Checks messages for banned words/patterns or bad links from non-admins and deletes them."""
     message = update.message
     if not message or not message.text:
         return
@@ -67,21 +91,29 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception:
         return
 
-    # Convert the user's message to lowercase once
-    message_text_lower = message.text.lower()
+    # Layer 1: Check with the smart PATTERN first
+    if PATTERN.search(message.text):
+        try:
+            await message.delete()
+            print(f"Deleted a message from '{user.username}' containing a regex pattern match.")
+            return
+        except Exception as e:
+            print(f"Failed to delete message for regex pattern: {e}")
+        return
 
-    # Check if any of the banned words are in the lowercase message
-    for word in ADULT_WORDS:
+    # Layer 2: Check the comprehensive BANNED_WORDS list
+    message_text_lower = message.text.lower()
+    for word in BANNED_WORDS:
         if word in message_text_lower:
             try:
                 await message.delete()
                 print(f"Deleted a message from '{user.username}' containing a banned word: '{word}'")
-                return # Stop processing after deleting
+                return
             except Exception as e:
                 print(f"Failed to delete message for banned word: {e}")
             return
 
-    # If no banned words are found, then check for bad links
+    # Layer 3: If no banned words are found, check for bad links
     if check_message_for_bad_links(message.text):
         try:
             await message.delete()
