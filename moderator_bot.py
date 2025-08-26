@@ -44,7 +44,7 @@ BANNED_WORDS = [
     "prostitution", "pussy", "racy", "ratfucking", "raunchy", "retard", "sexcam", "sexvideo", "sexy", 
     "shit", "shithouse", "shitposting", "shitter", "slut", "smut", "spicy", "steroids", "strip", 
     "stripping", "suckmy", "swinger", "topless", "twat", "vagina", "voyeur", "vulgar", "wank", 
-    "webcam", "xanax", "xrated", "xxx", "zoophile", "zoophilia"
+    "webcam", "xanax", "xrated", "xxx", "zoophile", "zoophilia" ,"Dengue", "Dengey", "modda", "mda", "lavada", "lawada"
 ]
 
 # The smart pattern for common variations
@@ -142,3 +142,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
